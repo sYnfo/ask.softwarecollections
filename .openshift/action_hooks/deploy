@@ -1,0 +1,22 @@
+#!/bin/bash
+# This deploy hook gets executed after dependencies are resolved and the
+# build hook has been run but before the application has been started back
+# up again.  This script gets executed directly, so it could be python, php,
+# ruby, etc.
+
+source $OPENSHIFT_HOMEDIR/python/virtenv/bin/activate
+
+mkdir -p ${OPENSHIFT_DATA_DIR}upfiles 2>/dev/null || :
+mkdir -p ${OPENSHIFT_DATA_DIR}log 2>/dev/null || :
+
+ln -sf ${OPENSHIFT_DATA_DIR}upfiles ${OPENSHIFT_REPO_DIR}wsgi/static/upfiles
+ln -sf ${OPENSHIFT_DATA_DIR}log ${OPENSHIFT_REPO_DIR}wsgi/openshift/log
+
+echo "Executing 'python ${OPENSHIFT_REPO_DIR}wsgi/manage.py collectstatic --noinput'"
+python ${OPENSHIFT_REPO_DIR}wsgi/manage.py collectstatic --noinput -v0
+
+echo "Executing 'python ${OPENSHIFT_REPO_DIR}wsgi/manage.py syncdb'"
+python ${OPENSHIFT_REPO_DIR}wsgi/manage.py syncdb
+
+echo "Executing 'python ${OPENSHIFT_REPO_DIR}wsgi/manage.py migrate'"
+python ${OPENSHIFT_REPO_DIR}wsgi/manage.py migrate
